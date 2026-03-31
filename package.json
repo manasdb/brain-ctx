@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "brain.ctx — AI Constitution Standard. Monorepo containing Python + Node libraries.",
-  "author": "Bomberedman <hello@manasdb.com>",
+  "author": "ManasDB <hello@manasdb.com>",
   "license": "Apache-2.0",
   "scripts": {
     "sync-spec": "node scripts/sync-spec.js",

@@ -8,7 +8,7 @@ version = "1.0.0"
 description = "brain.ctx — AI Constitution Standard. Self-maintaining project intelligence for every AI tool, agent, and model."
 readme = "README.md"
 license = { text = "Apache-2.0" }
-authors = [{ name = "Manasdb", email = "hello@manasdb.com" }]
+authors = [{ name = "ManasDB", email = "hello@manasdb.com" }]
 keywords = ["ai", "agents", "llm", "context", "brain-ctx", "manasdb"]
 classifiers = [
     "Development Status :: 4 - Beta",

@@ -2,7 +2,7 @@
 
 > **The self-maintaining project intelligence file that gives every AI model, agent, and tool instant understanding of your codebase — automatically.**
 
-Invented by [Manasdb](https://manasdb.com) / ManasDB
+Invented by [ManasDB](https://manasdb.com)
 
 ---
 
@@ -158,4 +158,4 @@ Both libraries read and write the same `brain.ctx` format. The spec is the contr
 
 ---
 
-_Invented by Manasdb. Powered by ManasDB. Apache-2.0._
+_Invented and Powered by ManasDB. Apache-2.0._

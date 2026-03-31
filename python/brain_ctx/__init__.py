@@ -27,7 +27,7 @@ CLI:
 """
 
 __version__      = "1.0.0"
-__author__       = "Manasdb"
+__author__       = "ManasDB"
 __license__      = "Apache-2.0"
 __spec_version__ = "1.0"
 

@@ -185,7 +185,7 @@ brain-ctx/
 │   └── package.json
 │
 ├── examples/
-│   └── manasdb/brain.ctx          ← First real-world brain.ctx (reference)
+│   └── monorepo/brain.ctx          ← First real-world brain.ctx (reference)
 │
 ├── scripts/sync-spec.js           ← Syncs schema into both libraries
 └── README.md
