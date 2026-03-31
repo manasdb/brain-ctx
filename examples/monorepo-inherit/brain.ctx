@@ -1,0 +1,131 @@
+# brain.ctx — Acme Corp (Monorepo Root)
+# AI Constitution Standard v1.0
+#
+# This is the PARENT constitution. All service brain.ctx files inherit from this.
+# Services override only what's different for them.
+#
+# Usage in any service:
+#   inherit: ../../brain.ctx   (path relative to the service's brain.ctx)
+#
+# Inheritance behavior:
+#   - hard_rules:        parent + child (both apply, deduplicated)
+#   - conditional_rules: parent + child (both apply)
+#   - trust.never_touch: parent + child (combined)
+#   - trust.agents:      child role definitions override parent per role
+#   - ethics:            child overrides parent per key
+#   - identity:          child always wins (service has its own identity)
+
+version: "1.0"
+
+identity:
+  name:    Acme Corp Platform
+  vision:  "Reliable, observable, secure software for everyone at Acme"
+  domain:  acme.internal
+  author:  Platform Team
+  license: Proprietary
+
+# ── Shared Hard Rules ──────────────────────────────────────────
+# These apply to EVERY service in the monorepo via inheritance.
+
+hard_rules:
+  - "Never log sensitive PII (emails, names, addresses) to console or log files."
+  - "Never use console.log in production code. Use the structured logger only."
+  - "Never commit secrets, API keys, or credentials to git — not even test ones."
+  - "Never use `any` TypeScript type in service boundaries. Use explicit types."
+  - "Never call another service's database directly. Use the service's API only."
+  - "Never deploy without passing CI. All tests must be green on main."
+  - "Never swallow errors silently. Always log with context and propagate."
+
+# ── Shared Conditional Rules ───────────────────────────────────
+
+conditional_rules:
+  - rule: "Never deploy to production on Fridays after 3pm or on weekends."
+    when:
+      env: [production]
+    severity: ERROR
+
+  - rule: "All PRs to main require at least one approved review from a senior engineer."
+    when:
+      branch: [main, master]
+    severity: ERROR
+
+  - rule: "Never skip integration tests when merging to a release branch."
+    when:
+      branch: ["release/*"]
+    severity: ERROR
+
+ethics:
+  never_expose:
+    - api_keys
+    - passwords
+    - user_pii
+    - internal_service_tokens
+    - database_connection_strings
+  data_sovereignty: EU
+  never_publish:    without_legal_review
+  compliance:
+    - GDPR
+    - SOC2-Type-II
+
+# ── Shared Trust Config ────────────────────────────────────────
+
+trust:
+  default: read_only
+
+  never_touch:
+    - "*.key"
+    - "*.pem"
+    - "*.env.production"
+    - "*.env.staging"
+    - "*.lock"
+    - "*.pid"
+    - "*.sock"
+
+  agents:
+    architect:
+      can:    [read_all, propose_changes, create_adr]
+      cannot: [write, delete]
+
+    implementor:
+      can:    [write_code, run_tests, read_all]
+      cannot: [change_architecture, delete, touch_mutex_files]
+
+    reviewer:
+      can:    [read_all, flag_violations, add_comments]
+      cannot: [write, delete]
+
+    ci_agent:
+      can:    [read_all, run_tests, run_linter]
+      cannot: [write_src, delete, touch_secrets, deploy]
+
+cognitive:
+  critical:  [hard_rules, trust_tiers, api_surface]
+  important: [conventions, ethics]
+  reference: [full_history]
+  token_budget:
+    claude:  12000
+    gpt4:    8000
+    gemini:  20000
+    local:   2000
+
+dialects:
+  claude:  "This is a monorepo. Check the service's own brain.ctx for service-specific rules. Parent rules always apply. Check conditional_rules for environment constraints."
+  gpt4:    "Read service-specific brain.ctx before editing. Parent rules inherited from root brain.ctx also apply. Never call another service's database directly."
+  local:   "Limited context. Focus on the specific file. Never cross service boundaries."
+
+observability:
+  enabled:    true
+  log_file:   .brain-ctx.log
+  log_format: json
+  retention:  90_days
+  capture:    [writes, violations, proposals]
+
+inference:
+  enabled: true
+  sources: [codebase, git, tests, dependencies]
+
+mesh:
+  imports:             []
+  conflict_resolution: local_wins
+
+signature: {}

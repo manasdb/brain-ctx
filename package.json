@@ -1,0 +1,22 @@
+{
+  "name": "brain-ctx-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "brain.ctx — AI Constitution Standard. Monorepo containing Python + Node libraries.",
+  "author": "Bomberedman <hello@manasdb.com>",
+  "license": "Apache-2.0",
+  "scripts": {
+    "sync-spec": "node scripts/sync-spec.js",
+    "build": "npm run sync-spec && npm run build:node",
+    "build:node": "cd node && npm run build",
+    "test": "npm run test:python && npm run test:node",
+    "test:python": "cd python && pytest tests/ -v",
+    "test:node": "cd node && npm test",
+    "lint:node": "cd node && npm run lint",
+    "validate-examples": "python -c \"\nimport yaml, json, jsonschema, pathlib\nschema = json.load(open('spec/brain-ctx.schema.json'))\nfor f in pathlib.Path('examples').rglob('brain.ctx'):\n    data = yaml.safe_load(f.read_text())\n    jsonschema.validate(data, schema)\n    print(f'✓ {f}')\n\""
+  },
+  "workspaces": [
+    "node"
+  ],
+  "type": "module"
+}

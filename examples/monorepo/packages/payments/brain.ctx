@@ -1,0 +1,74 @@
+# brain.ctx — Acme Payments Service
+# Inherits from: ../../brain.ctx (root platform constitution)
+#
+# This package handles all Stripe payment processing.
+# It inherits all platform-wide rules and adds payment-specific constraints.
+
+version: "1.0"
+inherit: ../../brain.ctx
+
+identity:
+  name:    Acme Payments Service
+  vision:  "PCI-DSS compliant Stripe payment processing — zero duplicate charges"
+  domain:  payments.acme.dev
+
+# Payments-specific hard rules (ADDED to parent's rules)
+hard_rules:
+  - "Never process a charge without first creating an idempotency key."
+  - "Never store raw card numbers, CVVs, or PANs anywhere in this service."
+  - "Never mark a payment succeeded until Stripe webhook confirms it."
+  - "Never retry a failed charge without exponential backoff (1s, 2s, 4s, 8s)."
+  - "Never write to the payments table outside of PaymentService.ts."
+
+ethics:
+  never_expose:
+    - card_numbers
+    - cvv
+    - full_pan
+    - stripe_secret_key
+    - webhook_signing_secret
+  compliance:
+    - PCI-DSS-Level-2
+    - GDPR
+    - SOC2-Type-II
+
+trust:
+  never_touch:
+    - "*.manas"
+  mutex_files:
+    - "src/services/PaymentService.ts"
+    - "src/services/WebhookService.ts"
+    - "src/db/migrations/"
+  agents:
+    implementor:
+      can:    [write_code, run_tests]
+      cannot: [change_architecture, touch_mutex_files, delete, run_live_charges]
+
+conditional_rules:
+  - rule: "Never use test Stripe keys in production. sk_live_* only."
+    when:
+      env: [production, staging]
+    severity: ERROR
+
+  - rule: "Stripe webhook signature verification is mandatory. Never skip constructEvent()."
+    when:
+      env: [production, staging]
+    severity: ERROR
+
+truth_sources:
+  api_surface:
+    infer_from:   "src/routes/index.ts"
+    pattern:      "router\\.(get|post|put|patch|delete)\\("
+    auto_extract: true
+  payment_service:
+    infer_from:   "src/services/PaymentService.ts"
+    pattern:      "^  (public|async)"
+    auto_extract: true
+  webhook_events:
+    infer_from:   "src/services/WebhookService.ts"
+    pattern:      "case '"
+    auto_extract: true
+
+dialects:
+  claude:  "Before touching PaymentService or WebhookService: state your idempotency impact. These are mutex files. PCI-DSS compliance is non-negotiable."
+  local:   "Payment service context. If file path includes PaymentService, WebhookService, or migrations — stop and ask before any change."

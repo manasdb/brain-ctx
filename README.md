@@ -1,0 +1,161 @@
+# brain.ctx — AI Constitution Standard
+
+> **The self-maintaining project intelligence file that gives every AI model, agent, and tool instant understanding of your codebase — automatically.**
+
+Invented by [Bomberedman](https://manasdb.com) / ManasDB
+
+---
+
+## The one-line pitch
+
+`brain.ctx` is the `package.json` of AI — a project constitution file that lives at your repo root, reads your codebase in real time, and gives every AI tool the right context without you writing or maintaining anything.
+
+```
+brain-ctx init        # scan project, generate brain.ctx in 30 seconds
+                      # zero mandatory human input
+```
+
+---
+
+## What problem it solves
+
+| Pain               | Without brain.ctx                     | With brain.ctx                  |
+| ------------------ | ------------------------------------- | ------------------------------- |
+| Context amnesia    | Re-explain architecture every session | Zero re-explaining, ever        |
+| Stale instructions | Manual updates when code changes      | Auto-inferred from live code    |
+| Model switching    | Different prompts per tool            | One file, works with all models |
+| Agent permissions  | No control over what agents can do    | Enforced permission layer       |
+| Team inconsistency | 10 devs, 10 different AI behaviors    | One shared project constitution |
+| Compliance         | No audit trail                        | Full observability log          |
+
+---
+
+## Monorepo Structure
+
+```
+brain-ctx/
+├── spec/                      ← Canonical JSON Schema (model-agnostic)
+│   └── brain-ctx.schema.json
+│
+├── python/                    ← pip install brain-ctx
+│   ├── brain_ctx/
+│   │   ├── __init__.py
+│   │   ├── core.py            ← BrainCtx class
+│   │   ├── cli.py             ← brain-ctx CLI (init/validate/sign/...)
+│   │   ├── generators/
+│   │   │   └── auto.py        ← AutoGenerator (zero human input)
+│   │   ├── parsers/
+│   │   │   ├── loader.py
+│   │   │   └── writer.py
+│   │   ├── validators/
+│   │   │   └── schema.py
+│   │   └── signers/
+│   │       └── ed25519.py
+│   └── pyproject.toml
+│
+├── node/                      ← npm install brain-ctx
+│   ├── src/
+│   │   ├── index.ts           ← main exports
+│   │   ├── core.ts            ← BrainCtx class
+│   │   ├── types/
+│   │   │   └── index.ts       ← full TypeScript types
+│   │   └── mcp/
+│   │       └── index.ts       ← MCP server (agent enforcement)
+│   └── package.json
+│
+└── examples/
+    ├── react-app/             ← brain.ctx for a React project
+    └── python-lib/            ← brain.ctx for a Python library
+```
+
+---
+
+## Quick Start
+
+### Python (generator + CLI)
+
+```bash
+pip install brain-ctx
+cd your-project
+brain-ctx init          # generates brain.ctx automatically
+brain-ctx validate      # validates the file
+brain-ctx score         # shows AI Score
+```
+
+### Node (MCP server + TypeScript API)
+
+```bash
+npm install brain-ctx
+
+# Start MCP server (for agent enforcement)
+npx brain-ctx-mcp
+
+# TypeScript API
+import { BrainCtx } from "brain-ctx"
+const ctx = BrainCtx.load()
+console.log(ctx.aiScore().raw)
+// ✓ brain.ctx loaded — ManasDB v1.0 | Trust: read_only | 7 invariants active
+```
+
+---
+
+## The AI Score
+
+When any AI model loads your brain.ctx, it outputs:
+
+```
+✓ brain.ctx loaded — ManasDB v1.0 | Trust: read_only | 7 invariants active | 3 agents registered | Signed: ✓
+```
+
+This is the viral moment. Developers will screenshot this and post it. That is the loop.
+
+---
+
+## Why it never goes stale
+
+brain.ctx does not store facts. It stores **pointers to where facts live**:
+
+```yaml
+truth_sources:
+  api_surface:
+    infer_from: src/lib.rs
+    pattern: "pub fn"
+    auto_extract: true
+  conventions:
+    infer_from: .git/commits
+    last_n: 100
+    auto_learn: true
+  invariants:
+    infer_from: tests/
+    pattern: test_invariant_*
+    auto_register: true
+```
+
+Your API changes → brain.ctx knows. Tests change → invariants update. New commit → conventions evolve. Zero manual updates ever.
+
+---
+
+## Relationship between Python and Node libraries
+
+|                 | Python (`brain-ctx`)                 | Node (`brain-ctx`)                          |
+| --------------- | ------------------------------------ | ------------------------------------------- |
+| Primary purpose | Generation, CLI, validation, signing | MCP server, TypeScript API, IDE integration |
+| Install         | `pip install brain-ctx`              | `npm install brain-ctx`                     |
+| Key command     | `brain-ctx init`                     | `npx brain-ctx-mcp`                         |
+| Shared          | `spec/brain-ctx.schema.json`         | Same spec, same schema                      |
+| Language        | Python 3.9+                          | Node 18+, TypeScript 5+                     |
+
+Both libraries read and write the same `brain.ctx` format. The spec is the contract. Either library can load a brain.ctx generated by the other.
+
+---
+
+## Links
+
+- Spec: `spec/brain-ctx.schema.json`
+- ManasDB: [manasdb.com](https://manasdb.com)
+- GitHub: [github.com/manasdb/brain-ctx](https://github.com/manasdb/brain-ctx)
+- Registry: [mesh.brainctx.dev](https://mesh.brainctx.dev)
+
+---
+
+_Invented by Bomberedman. Powered by ManasDB. Apache-2.0._

@@ -1,0 +1,52 @@
+# brain.ctx — Acme Auth Service
+# Inherits from: ../../brain.ctx (root platform constitution)
+#
+# This package handles all authentication and authorization.
+# JWT issuance, session management, OAuth2, MFA.
+
+version: "1.0"
+inherit: ../../brain.ctx
+
+identity:
+  name:    Acme Auth Service
+  vision:  "Secure, stateless authentication — zero trust, every request verified"
+  domain:  auth.acme.dev
+
+hard_rules:
+  - "Never issue a JWT without an expiry (exp claim). Maximum 1 hour for access tokens."
+  - "Never store JWT secrets in code or config files. Use environment variables only."
+  - "Never trust user-supplied role claims without server-side verification."
+  - "Never allow password reset tokens to be reused. Invalidate on first use."
+  - "Never log the full Authorization header. Log only the first 8 chars of the token."
+  - "MFA bypass codes must be single-use and hashed at rest. Never stored in plaintext."
+
+trust:
+  mutex_files:
+    - "src/middleware/auth.ts"
+    - "src/services/JWTService.ts"
+    - "src/services/SessionService.ts"
+    - "src/db/migrations/"
+  agents:
+    security_agent:
+      can:    [read_all, flag_security_issues, scan_dependencies]
+      cannot: [write, delete]
+
+conditional_rules:
+  - rule: "JWT secrets must be at least 256 bits. Validate SECRET_LENGTH >= 32 bytes on startup."
+    when:
+      env: [production, staging]
+    severity: ERROR
+  - rule: "Rate limiting on /auth/login must be active. Max 5 attempts per IP per 15 minutes."
+    when:
+      env: [production, staging]
+    severity: ERROR
+
+truth_sources:
+  api_surface:
+    infer_from:   "src/routes/auth.ts"
+    pattern:      "router\\.(get|post|put|delete)\\("
+    auto_extract: true
+  jwt_config:
+    infer_from:   "src/services/JWTService.ts"
+    pattern:      "expiresIn|algorithm|secret"
+    auto_extract: true

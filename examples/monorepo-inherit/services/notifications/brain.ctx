@@ -1,0 +1,110 @@
+# brain.ctx — Acme Notifications Service
+# AI Constitution Standard v1.0
+#
+# CHILD constitution — inherits from monorepo root.
+# Only defines what's DIFFERENT from the parent.
+#
+# Parent:  ../../brain.ctx  (Acme Corp Platform)
+# Service: Notification microservice (email, SMS, push)
+# Stack:   Node.js + TypeScript + SendGrid + Twilio + Firebase
+
+version: "1.0"
+inherit: ../../brain.ctx         # inherits all Acme Corp rules
+
+identity:
+  name:    Acme Notifications Service
+  vision:  "Reliable multi-channel notifications — email, SMS, push"
+  domain:  notifications.acme.internal
+  author:  Notifications Team
+
+# These ADD to parent's hard_rules (parent rules still apply):
+hard_rules:
+  - "Never send a notification without first checking user opt-out preferences."
+  - "Never expose SendGrid API keys or Twilio auth tokens anywhere."
+  - "Never retry a failed SMS more than 3 times — Twilio charges per attempt."
+  - "Never send bulk email without rate limiting: max 100/second per SendGrid plan."
+
+# These ADD to parent's conditional_rules:
+conditional_rules:
+  - rule: "Never send real emails or SMS in development. Use preview mode only."
+    when:
+      env: [development, test, ci]
+    severity: ERROR
+
+  - rule: "Never send notifications during maintenance windows without explicit override flag."
+    when:
+      env: [production]
+    severity: WARN
+
+# Overrides parent ethics — adds service-specific sensitive data:
+ethics:
+  never_expose:
+    - api_keys
+    - passwords
+    - user_pii
+    - sendgrid_api_key
+    - twilio_auth_token
+    - firebase_service_account
+    - phone_numbers          # PII — never log raw phone numbers
+    - email_addresses        # PII — never log raw email addresses
+  data_sovereignty: EU
+  never_publish: without_security_review
+
+# Overrides parent trust — service-specific mutex files and agents:
+trust:
+  default: read_only
+
+  never_touch:               # inherits parent's + adds these:
+    - "*.env.production"
+    - "templates/*.html"     # email templates — marketing owns these
+    - "config/rate-limits.*" # rate limit config — platform team owns
+
+  mutex_files:               # service-specific critical files
+    - "src/services/EmailService.ts"
+    - "src/services/SmsService.ts"
+    - "src/providers/sendgrid.ts"
+    - "src/providers/twilio.ts"
+
+  agents:                    # overrides parent implementor role
+    implementor:
+      can:    [write_code, run_tests, read_all]
+      cannot: [change_architecture, delete, touch_mutex_files, send_real_notifications]
+
+# Service-specific truth sources:
+truth_sources:
+  api_surface:
+    infer_from:   "src/routes/notifications.ts"
+    pattern:      "router\\.(get|post|put|delete)\\("
+    auto_extract: true
+
+  notification_types:
+    infer_from:   "src/types/notifications.ts"
+    pattern:      "^export (type|interface|enum)"
+    auto_extract: true
+
+  provider_config:
+    infer_from:   "src/providers/*.ts"
+    pattern:      "^export"
+    auto_extract: true
+
+  invariants:
+    infer_from:    "tests/"
+    pattern:       "test_invariant_*"
+    auto_register: true
+
+  conventions:
+    infer_from: .git/commits
+    last_n:     100
+    auto_learn: true
+
+  dependencies:
+    infer_from:   "package.json"
+    auto_extract: true
+
+# Service-specific dialects (extend parent's):
+dialects:
+  claude:  "This is the Notifications Service. Never send real emails/SMS in tests. Check opt-out before any send. Mutex files: EmailService.ts, SmsService.ts — state plan before touching."
+  gpt4:    "Read existing provider files before editing. Never hardcode API keys. Check conditional_rules for environment restrictions on sending."
+  local:   "Focus on the task. Never send real notifications from non-production environments."
+
+signature: {}

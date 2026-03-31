@@ -1,0 +1,138 @@
+# brain.ctx — Acme Corp Platform
+# AI Constitution Standard v1.0
+#
+# ROOT CONSTITUTION — all packages inherit from this.
+# Individual packages extend with their own constraints.
+#
+# Monorepo structure:
+#   packages/auth/          ← Authentication service
+#   packages/payments/      ← Payment processing service
+#   packages/notifications/ ← Notification delivery service
+#
+# Usage in child packages:
+#   inherit: ../../brain.ctx
+
+version: "1.0"
+
+identity:
+  name:    Acme Corp Platform
+  vision:  "Reliable, secure, observable infrastructure for everything Acme builds"
+  domain:  platform.acme.dev
+  author:  Acme Engineering
+  license: PROPRIETARY
+
+# ── Shared Hard Rules (all packages inherit these) ─────────────
+hard_rules:
+  # Security — universal across all services
+  - "Never log secrets, tokens, passwords, or API keys. Use [REDACTED] in log output."
+  - "Never use string interpolation in SQL queries. Parameterized queries always."
+  - "Never disable TLS certificate verification in any environment."
+  - "Never store passwords in plaintext. bcrypt with minimum cost factor 12."
+
+  # Observability — universal
+  - "All errors must be logged with a correlation ID (trace_id). Never swallow errors silently."
+  - "All external HTTP calls must have a timeout. Default: 5000ms. Never infinite timeout."
+
+  # Code quality — universal
+  - "Never push directly to main or master. All changes via pull request."
+  - "Never merge a PR with failing tests. CI must be green."
+
+ethics:
+  never_expose:
+    - passwords
+    - api_keys
+    - tokens
+    - pii
+    - credit_card_data
+    - ssn
+  never_delete:
+    - "audit_logs/*"
+    - "*.migration.sql"
+  data_sovereignty: EU    # GDPR — all services
+  compliance:
+    - GDPR
+    - SOC2-Type-II
+
+# ── Shared trust config ────────────────────────────────────────
+trust:
+  default: read_only
+  never_touch:
+    - "*.env"
+    - "*.env.production"
+    - "*.key"
+    - "*.pem"
+    - "*.lock"
+    - "audit_logs/*"
+  agents:
+    architect:
+      can:    [read_all, propose_changes]
+      cannot: [write, delete]
+    implementor:
+      can:    [write_code, run_tests]
+      cannot: [change_architecture, delete, touch_mutex_files]
+    reviewer:
+      can:    [read_all, flag_violations]
+      cannot: [write, delete]
+    ci_agent:
+      can:    [read_all, run_tests, run_linter]
+      cannot: [write_src, delete, deploy]
+
+# ── Shared conditional rules ───────────────────────────────────
+conditional_rules:
+  - rule: "All services must pass OWASP top-10 security scan before production deployment."
+    when:
+      env: [production]
+    severity: ERROR
+
+  - rule: "Feature flags must be disabled by default in production. Opt-in only."
+    when:
+      env: [production]
+    severity: ERROR
+
+  - rule: "Never merge without CHANGELOG update in release branches."
+    when:
+      branch: [release/*]
+    severity: WARN
+
+# ── Shared cognitive config ────────────────────────────────────
+cognitive:
+  critical:   [hard_rules, trust_tiers, api_surface]
+  important:  [architecture, conventions, ethics]
+  reference:  [full_history, benchmarks]
+  token_budget:
+    claude:  12000
+    gpt4:    8000
+    gemini:  20000
+    local:   2000
+
+dialects:
+  claude:  "Before any write: state your plan, check mutex_files, verify invariants. This is a multi-service platform — a change here may affect other packages."
+  gpt4:    "Always read existing files before editing. Check for shared interfaces in packages/shared/. Never assume isolated impact."
+  gemini:  "Strict TypeScript. No any types. All functions must have explicit return types. Handle all Promise rejections."
+  local:   "Limited context. Focus on the immediate task. Check if file is in mutex_files before writing."
+
+observability:
+  enabled:    true
+  log_file:   .brain-ctx.log
+  log_format: json
+  retention:  365_days
+  capture:    [reads, writes, proposals, rejections, violations]
+
+timeline:
+  - date:   "2023-01"
+    event:  "Monorepo created — migrated from 3 separate repos"
+    lesson: "All services share authentication and observability infrastructure"
+  - date:   "2023-06"
+    event:  "SOC2 Type II audit passed — audit_logs is now a compliance artifact"
+    lesson: "audit_logs/* must never be touched — it is a legal record"
+  - date:   "2024-03"
+    event:  "GDPR DPA signed — EU data sovereignty is mandatory for all services"
+    lesson: "All new services must declare data_sovereignty: EU"
+  - date:   "2025-01"
+    event:  "Adopted brain.ctx as AI constitution standard across all packages"
+
+mesh:
+  imports:             []
+  conflict_resolution: local_wins
+
+signature: {}
