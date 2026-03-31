@@ -1,7 +1,7 @@
 """
 brain.ctx — AI Constitution Standard v1.0
 ==========================================
-Invented by Bomberedman / ManasDB (manasdb.com)
+Invented by ManasDB (manasdb.com)
 
 The self-maintaining project intelligence file that gives every AI model,
 agent, and tool instant understanding of your codebase — automatically.
@@ -27,7 +27,7 @@ CLI:
 """
 
 __version__      = "1.0.0"
-__author__       = "Bomberedman"
+__author__       = "Manasdb"
 __license__      = "Apache-2.0"
 __spec_version__ = "1.0"
 

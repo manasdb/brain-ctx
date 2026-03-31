@@ -1,6 +1,7 @@
 # brain.ctx — Local Setup Guide
 
 ## Prerequisites
+
 - Python 3.9+
 - Node.js 18+
 - npm 9+
@@ -11,12 +12,14 @@
 ## Quick Start
 
 ### 1. Clone / unzip the project
+
 ```bash
 unzip brain-ctx-v1.0.zip
 cd brain-ctx
 ```
 
 ### 2. Sync the spec (copies schema into both libraries)
+
 ```bash
 node scripts/sync-spec.js
 ```
@@ -47,6 +50,7 @@ brain-ctx sign --key ~/.brain-ctx/private.key
 ```
 
 ### Python API quick test
+
 ```python
 from brain_ctx import BrainCtx
 
@@ -88,24 +92,25 @@ node dist/mcp/index.js
 ```
 
 ### Node API quick test
+
 ```typescript
-import { BrainCtx } from "brain-ctx"
+import { BrainCtx } from "brain-ctx";
 
 // Load brain.ctx
-const ctx = BrainCtx.load("./brain.ctx")
-console.log(ctx.aiScore().raw)
+const ctx = BrainCtx.load("./brain.ctx");
+console.log(ctx.aiScore().raw);
 
 // Check agent permissions
-console.log(ctx.isAllowed("implementor", "write", "src/main.rs"))  // true
-console.log(ctx.isAllowed("implementor", "write", "prod.manas"))   // false
+console.log(ctx.isAllowed("implementor", "write", "src/main.rs")); // true
+console.log(ctx.isAllowed("implementor", "write", "prod.manas")); // false
 
 // Build context string for any AI model
-const context = ctx.buildContext({ model: "claude", tokenBudget: 12000 })
-console.log(context)
+const context = ctx.buildContext({ model: "claude", tokenBudget: 12000 });
+console.log(context);
 
 // VS Code integration
-import { syncAiToolBridges } from "brain-ctx/vscode"
-syncAiToolBridges(ctx, process.cwd())
+import { syncAiToolBridges } from "brain-ctx/vscode";
+syncAiToolBridges(ctx, process.cwd());
 // Creates: .cursorrules + .github/copilot-instructions.md
 ```
 
@@ -192,6 +197,7 @@ brain-ctx/
 
 The JSON Schema lives at `spec/brain-ctx.schema.json`.
 It is automatically copied into:
+
 - `python/brain_ctx/spec/brain-ctx.schema.json`
 - `node/src/spec/brain-ctx.schema.json`
 
@@ -199,4 +205,4 @@ Run `node scripts/sync-spec.js` after any schema change.
 
 ---
 
-*brain.ctx v1.0 — Invented by Bomberedman / ManasDB (manasdb.com)*
+_brain.ctx v1.0 — Invented by ManasDB (manasdb.com)_

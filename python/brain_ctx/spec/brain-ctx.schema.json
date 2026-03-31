@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://brainctx.dev/spec/v1/schema.json",
   "title": "brain.ctx",
-  "description": "AI Constitution Standard v1.0 \u2014 invented by Bomberedman / ManasDB",
+  "description": "AI Constitution Standard v1.0 \u2014 invented by ManasDB",
   "type": "object",
   "required": [
     "version",
