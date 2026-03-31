@@ -16,6 +16,8 @@ export interface BrainCtxFile {
   mesh?:          MeshConfig
   observability?: ObservabilityConfig
   signature?:     SignatureBlock
+  verification?:  VerificationConfig
+
   inherit?:           string
   conditional_rules?: Array<string | ConditionalRule>
   timeline?:          TimelineEntry[]
@@ -80,7 +82,16 @@ export interface CognitiveConfig {
   important?:    string[]
   reference?:    string[]
   token_budget?: Record<string, number>
+  modes?:        Record<string, { prioritize: string[] }>
 }
+
+export interface VerificationConfig {
+  test_command?:  string
+  lint_command?:  string
+  build_command?: string
+  auto_verify?:   boolean
+}
+
 
 export interface DialectConfig {
   claude?:  string
@@ -156,7 +167,9 @@ export interface ContextBuildOptions {
   model?:       string
   tokenBudget?: number
   live?:        boolean  // resolve truth_sources from live code
+  mode?:        string   // task-specific priority override
 }
+
 
 export interface ConditionalRule {
   rule:      string

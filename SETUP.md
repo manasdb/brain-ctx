@@ -1,4 +1,4 @@
-# brain.ctx — Local Setup Guide
+# brain.ctx — Local Setup Guide (v1.1.0 "Senior Upgrade")
 
 ## Prerequisites
 
@@ -14,7 +14,7 @@
 ### 1. Clone / unzip the project
 
 ```bash
-unzip brain-ctx-v1.0.zip
+unzip brain-ctx-v1.1.0.zip
 cd brain-ctx
 ```
 
@@ -26,7 +26,7 @@ node scripts/sync-spec.js
 
 ---
 
-## Python Library Setup
+## Python Library Setup (v1.1.0)
 
 ```bash
 cd python
@@ -34,44 +34,37 @@ cd python
 # Install in dev mode with all deps
 pip install -e ".[dev]"
 
-# Run tests (should show 46 passed)
+# Run tests (should show 105 passed)
 pytest tests/ -v
 
 # Try the CLI on any project
 cd /your/project
-brain-ctx init          # generate brain.ctx automatically
+brain-ctx init          # generate brain.ctx automatically (Zero human input)
 brain-ctx validate      # validate the file
 brain-ctx show          # display contents
-brain-ctx score         # show AI Score
-
-# Optional: install signing support
-pip install brain-ctx[signing]
-brain-ctx sign --key ~/.brain-ctx/private.key
+brain-ctx score         # show AI Score with v1.1 status (Verified status)
 ```
 
-### Python API quick test
+### Python API v1.1 examples
 
 ```python
 from brain_ctx import BrainCtx
 
-# Generate for current project
+# Auto-detect project structure (tests, git, code)
 ctx = BrainCtx.generate(".")
-print(ctx.ai_score())
+print(ctx.ai_score())  # ✓ brain.ctx loaded... | Verified: !
+
+# Save to disk
 ctx.save()
 
-# Load existing
-ctx = BrainCtx.load("./brain.ctx")
-print(ctx.identity)
-print(ctx.hard_rules)
-
-# Build context for AI
-context = ctx.build_context(model="claude", token_budget=12000)
+# Build context for a specific task mode
+context = ctx.build_context(model="claude", mode="debug")
 print(context)
 ```
 
 ---
 
-## Node Library Setup
+## Node Library Setup (v1.1.0)
 
 ```bash
 cd node
@@ -87,11 +80,9 @@ npm test
 
 # Start MCP server (for agent enforcement)
 node dist/mcp/index.js
-# OR via npx after publishing:
-# npx brain-ctx-mcp
 ```
 
-### Node API quick test
+### Node API v1.1 examples
 
 ```typescript
 import { BrainCtx } from "brain-ctx";
@@ -100,18 +91,16 @@ import { BrainCtx } from "brain-ctx";
 const ctx = BrainCtx.load("./brain.ctx");
 console.log(ctx.aiScore().raw);
 
-// Check agent permissions
+// Check agent permissions with hard-boundaries
 console.log(ctx.isAllowed("implementor", "write", "src/main.rs")); // true
-console.log(ctx.isAllowed("implementor", "write", "prod.manas")); // false
 
-// Build context string for any AI model
-const context = ctx.buildContext({ model: "claude", tokenBudget: 12000 });
+// Build context string dynamically for a build task
+const context = ctx.buildContext({ 
+    model: "claude", 
+    mode: "build",
+    tokenBudget: 12000 
+});
 console.log(context);
-
-// VS Code integration
-import { syncAiToolBridges } from "brain-ctx/vscode";
-syncAiToolBridges(ctx, process.cwd());
-// Creates: .cursorrules + .github/copilot-instructions.md
 ```
 
 ---
@@ -120,35 +109,21 @@ syncAiToolBridges(ctx, process.cwd());
 
 ```bash
 # From monorepo root
-npm run test:python    # Python: 46 tests
+npm run test:python    # Python: 105 tests
 npm run test:node      # Node: 47 tests
 ```
 
 ---
 
-## Try It On ManasDB's brain.ctx
+## The AI Score v1.1
 
-```bash
-# Validate the reference implementation
-brain-ctx validate examples/manasdb/brain.ctx
+When any AI model loads your `brain.ctx`, it outputs:
 
-# Load and inspect via Python
-python3 -c "
-from brain_ctx import BrainCtx
-ctx = BrainCtx.load('examples/manasdb/brain.ctx')
-print(ctx.ai_score())
-print('Rules:', ctx.hard_rules)
-print('Trust:', ctx.trust)
-"
-
-# Load and inspect via Node
-node -e "
-const { BrainCtx } = require('./node/dist/index.js')
-const ctx = BrainCtx.load('./examples/manasdb/brain.ctx')
-console.log(ctx.aiScore().raw)
-console.log('Allowed to write WAL?', ctx.isAllowed('implementor', 'write', 'src/wal.rs'))
-"
 ```
+✓ brain.ctx loaded — ManasDB v1.0 | Trust: read_only | 0 invariants active | 3 agents registered | Signed: ✗ | Verified: ✓
+```
+
+The **Verified** status indicates if an active **Execution Layer** (test/lint commands) is detected and enforced.
 
 ---
 
@@ -157,52 +132,30 @@ console.log('Allowed to write WAL?', ctx.isAllowed('implementor', 'write', 'src/
 ```
 brain-ctx/
 ├── spec/                          ← Canonical JSON Schema (single source of truth)
-│   └── brain-ctx.schema.json
-│
 ├── python/                        ← pip install brain-ctx
 │   ├── brain_ctx/
-│   │   ├── core.py                ← BrainCtx class
-│   │   ├── cli.py                 ← brain-ctx CLI
+│   │   ├── core.py                ← BrainCtx class & AI Score v1.1
+│   │   ├── cli.py                 ← brain-ctx CLI (init/validate/score/sign)
 │   │   ├── generators/auto.py     ← AutoGenerator (zero human input)
-│   │   ├── generators/updater.py  ← UpdateProposer
-│   │   ├── parsers/               ← loader + writer
-│   │   ├── validators/schema.py   ← JSON Schema validation
-│   │   ├── signers/ed25519.py     ← Cryptographic signing
-│   │   └── builders/context.py    ← Model-optimized context builder
-│   ├── tests/test_brain_ctx.py    ← 46 tests
+│   │   ├── builders/context.py    ← Model-optimized context (debug/build/refactor modes)
+│   │   └── signers/ed25519.py     ← Cryptographic signing
+│   ├── tests/                     ← 105 tests
 │   └── pyproject.toml
 │
 ├── node/                          ← npm install brain-ctx
 │   ├── src/
-│   │   ├── core.ts                ← BrainCtx class
-│   │   ├── types/index.ts         ← Full TypeScript types
-│   │   ├── parser/index.ts        ← YAML read/write/merge
-│   │   ├── validator/index.ts     ← AJV schema validation
-│   │   ├── vscode/index.ts        ← VS Code + Cursor + Copilot helpers
+│   │   ├── core.ts                ← BrainCtx class & permission enforcement
+│   │   ├── types/index.ts         ← Full TypeScript types (v1.1 unified)
 │   │   ├── mcp/index.ts           ← MCP server (agent enforcement)
-│   │   └── postinstall.ts         ← npm install hook
-│   ├── tests/brain-ctx.test.ts    ← 47 tests
+│   │   └── vscode/index.ts        ← VS Code + Cursor + Copilot helpers
+│   ├── tests/                     ← 47 tests
 │   └── package.json
 │
 ├── examples/
-│   └── monorepo/brain.ctx          ← First real-world brain.ctx (reference)
-│
-├── scripts/sync-spec.js           ← Syncs schema into both libraries
-└── README.md
+│   └── react-app/                 ← v1.1 referenceimplementation
+└── scripts/sync-spec.js           ← Syncs schema into both libraries
 ```
 
 ---
 
-## Spec Location
-
-The JSON Schema lives at `spec/brain-ctx.schema.json`.
-It is automatically copied into:
-
-- `python/brain_ctx/spec/brain-ctx.schema.json`
-- `node/src/spec/brain-ctx.schema.json`
-
-Run `node scripts/sync-spec.js` after any schema change.
-
----
-
-_brain.ctx v1.0 — Invented by ManasDB (manasdb.com)_
+_brain.ctx v1.1 — "The Senior Upgrade" — Invented by ManasDB (manasdb.com)_

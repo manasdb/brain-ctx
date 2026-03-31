@@ -42,6 +42,7 @@
     },
     "inference": {
       "type": "object",
+      "description": "How the system learns and adapts to codebase changes",
       "properties": {
         "enabled": {
           "type": "boolean",
@@ -49,6 +50,7 @@
         },
         "mode": {
           "type": "string",
+          "description": "propose_only: AI suggests updates; auto_apply: system updates itself (risky)",
           "enum": [
             "propose_only",
             "auto_apply",
@@ -58,6 +60,7 @@
         },
         "require_validation": {
           "type": "boolean",
+          "description": "Must a human or test suite validate inferred rules?",
           "default": true
         },
         "sources": {
@@ -70,6 +73,7 @@
     },
     "trust": {
       "type": "object",
+      "description": "Enforcement layer: what AI agents are allowed to do",
       "properties": {
         "default": {
           "type": "string",
@@ -81,25 +85,52 @@
         },
         "mutex_files": {
           "type": "array",
+          "description": "Paths that require explicit human approval for ANY modification",
           "items": {
             "type": "string"
           }
         },
         "never_touch": {
           "type": "array",
+          "description": "Hard-blocked paths that AI agents cannot even read/see",
           "items": {
             "type": "string"
           }
         },
         "agents": {
-          "type": "object"
+          "type": "object",
+          "description": "Role-based access control for different AI personas"
         }
       }
     },
     "hard_rules": {
       "type": "array",
+      "description": "Operational invariants. Use 'ALWAYS: [action]' or 'NEVER: [action]' patterns for best results.",
       "items": {
         "type": "string"
+      }
+    },
+    "verification": {
+      "type": "object",
+      "description": "The 'Execution Layer': commands to prove correctness",
+      "properties": {
+        "test_command": {
+          "type": "string",
+          "description": "Command to run unit/integration tests (e.g., 'npm test')"
+        },
+        "lint_command": {
+          "type": "string",
+          "description": "Command to run linting/static analysis (e.g., 'ruff check .')"
+        },
+        "build_command": {
+          "type": "string",
+          "description": "Command to verify a successful build (e.g., 'tsc')"
+        },
+        "auto_verify": {
+          "type": "boolean",
+          "description": "Should the system run these commands automatically after edits?",
+          "default": false
+        }
       }
     },
     "ethics": {
@@ -127,6 +158,7 @@
     },
     "cognitive": {
       "type": "object",
+      "description": "Dynamic context optimization: what information matters most",
       "properties": {
         "critical": {
           "type": "array",
@@ -148,6 +180,7 @@
         },
         "modes": {
           "type": "object",
+          "description": "Task-specific priority overrides (e.g., debug, refactor, build)",
           "additionalProperties": {
             "type": "object",
             "required": [
@@ -279,7 +312,7 @@
     },
     "timeline": {
       "type": "array",
-      "description": "Architectural decision history \u2014 why things are the way they are",
+      "description": "Architectural decision history — why things are the way they are",
       "items": {
         "type": "object",
         "properties": {

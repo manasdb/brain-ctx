@@ -122,7 +122,9 @@ class ContextBuilder:
             "conventions":  lambda: self._section_live_truth_sources(filter_key="conventions") if live else "",
             "architecture": lambda: self._section_timeline(),
             "decisions":    lambda: self._section_timeline(),
+            "verification": lambda: self._section_verification(),
         }
+
         builder = mapping.get(key)
         return builder() if builder else ""
 
@@ -150,10 +152,11 @@ class ContextBuilder:
         rules = self.ctx.hard_rules
         if not rules:
             return ""
-        lines = ["\n### Hard Rules — NEVER violate these"]
+        lines = ["\n### Hard Rules — Operational Invariants"]
         lines += [f"- {r}" for r in rules]
-        lines.append("\nThese are absolute. No exception. No workaround. If in doubt, stop and ask.")
+        lines.append("\nThese are absolute. Use ALWAYS/NEVER patterns. No exception. No workaround. If in doubt, stop and ask.")
         return "\n".join(lines)
+
 
     def _section_trust(self) -> str:
         t = self.ctx.trust
@@ -270,6 +273,24 @@ class ContextBuilder:
             f"All your actions are logged to {o.get('log_file', '.brain-ctx.log')}. "
             f"This is an audit trail. Act accordingly."
         )
+
+    def _section_verification(self) -> str:
+        v = self.ctx.verification
+        if not v:
+            return ""
+        lines = ["\n### Verification — The Execution Layer"]
+        if v.get("test_command"):
+            lines.append(f"Test command:  {v['test_command']}")
+        if v.get("lint_command"):
+            lines.append(f"Lint command:  {v['lint_command']}")
+        if v.get("build_command"):
+            lines.append(f"Build command: {v['build_command']}")
+        
+        status = "ENABLED (Auto-run after edits)" if v.get("auto_verify") else "MANUAL (Run before proposing)"
+        lines.append(f"\nMode: {status}")
+        lines.append("You ARE expected to prove your changes work by running these commands.")
+        return "\n".join(lines)
+
 
     def _section_footer(self) -> str:
         return f"\n---\n{self.ctx.ai_score()}\nI understand this project. Ready."

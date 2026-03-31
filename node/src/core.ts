@@ -102,7 +102,7 @@ export class BrainCtx {
    * // Inject context into your AI API call
    */
   buildContext(options: ContextBuildOptions = {}): string {
-    const { model = "claude", tokenBudget } = options
+    const { model = "claude", tokenBudget, mode } = options
     const budget = tokenBudget ?? this.data.cognitive?.token_budget?.[model] ?? 8000
 
     const sections: string[] = []
@@ -112,21 +112,40 @@ export class BrainCtx {
     sections.push(this._buildRulesSection())
     sections.push(this._buildTrustSection())
 
-    // Include important sections if budget allows
-    if (budget > 4000) {
-      if (this.data.ethics)    sections.push(this._buildEthicsSection())
-      if (this.data.dialects?.[model]) {
-        sections.push(`\n## Model Instructions (${model})\n${this.data.dialects[model]}`)
-      }
+    // 1. Resolve Priorities by Mode
+    const cog = this.data.cognitive
+    let prioritizedKeys: string[] = []
+    if (mode && cog?.modes?.[mode]) {
+      prioritizedKeys = cog.modes[mode].prioritize
     }
+
+    // 2. Add Verification Layer
+    if (this.data.verification) {
+      sections.push(this._buildVerificationSection())
+    }
+
+    // 3. Include prioritized/important sections if budget allows
+    const important = cog?.important ?? []
+    const keysToAdd = [...new Set([...prioritizedKeys, ...important])]
+
+    keysToAdd.forEach(key => {
+      if (budget > 4000) {
+        if (key === "ethics" && this.data.ethics) sections.push(this._buildEthicsSection())
+        if (key === "dialects" && this.data.dialects?.[model]) {
+          sections.push(`\n## Model Instructions (${model})\n${this.data.dialects[model]}`)
+        }
+      }
+    })
 
     // Include reference sections for large context models
     if (budget > 12000) {
       if (this.data.mesh) sections.push(this._buildMeshSection())
+      if (cog?.reference?.includes("timeline")) sections.push(this._buildTimelineSection())
     }
 
     return sections.filter(Boolean).join("\n")
   }
+
 
   private _buildIdentitySection(): string {
     const { name, vision, domain } = this.data.identity
@@ -138,10 +157,12 @@ export class BrainCtx {
 
   private _buildRulesSection(): string {
     if (!this.data.hard_rules?.length) return ""
-    const lines = ["\n## Hard Rules (NEVER violate these)"]
+    const lines = ["\n## Hard Rules — Operational Invariants"]
     this.data.hard_rules.forEach(rule => lines.push(`- ${rule}`))
+    lines.push("\nThese are absolute. Use ALWAYS/NEVER patterns. No exception. No workaround. If in doubt, stop and ask.")
     return lines.join("\n")
   }
+
 
   private _buildTrustSection(): string {
     const trust = this.data.trust
@@ -174,6 +195,31 @@ export class BrainCtx {
     return lines.join("\n")
   }
 
+  private _buildVerificationSection(): string {
+    const v = this.data.verification
+    if (!v) return ""
+    const lines = ["\n## Verification — The Execution Layer"]
+    if (v.test_command)  lines.push(`Test command:  ${v.test_command}`)
+    if (v.lint_command)  lines.push(`Lint command:  ${v.lint_command}`)
+    if (v.build_command) lines.push(`Build command: ${v.build_command}`)
+    
+    const status = v.auto_verify ? "ENABLED (Auto-run after edits)" : "MANUAL (Run before proposing)"
+    lines.push(`\nMode: ${status}`)
+    lines.push("You ARE expected to prove your changes work by running these commands.")
+    return lines.join("\n")
+  }
+
+  private _buildTimelineSection(): string {
+    if (!this.data.timeline?.length) return ""
+    const lines = ["\n## Project Timeline & Decisions"]
+    this.data.timeline.slice(0, 10).forEach(e => {
+      lines.push(`- [${e.date}] ${e.event}`)
+      if (e.lesson) lines.push(`  Lesson: ${e.lesson}`)
+    })
+    return lines.join("\n")
+  }
+
+
   // ── AI Score ───────────────────────────────────────────────
 
   /**
@@ -188,6 +234,7 @@ export class BrainCtx {
     const invariants = this.data.hard_rules?.length ?? 0
     const agents     = Object.keys(this.data.trust?.agents ?? {}).length
     const signed     = !!this.data.signature?.value
+    const verified   = this.data.verification?.auto_verify ? "✓" : (this.data.verification ? "!" : "✗")
 
     const parts = [
       `✓ brain.ctx loaded — ${this.name} v${this.version}`,
@@ -196,8 +243,10 @@ export class BrainCtx {
     ]
     if (agents) parts.push(`${agents} agents registered`)
     parts.push(`Signed: ${signed ? "✓" : "✗"}`)
+    parts.push(`Verified: ${verified}`)
 
     const raw = parts.join(" | ")
+
 
     return {
       raw,

@@ -54,14 +54,12 @@ class AutoGenerator:
         self._scan_tests(ctx)
         self._scan_ethics(ctx)
         self._build_inference_config(ctx)
+        self._build_verification(ctx)
         self._build_cognitive_defaults(ctx)
         self._build_observability_defaults(ctx)
 
-        # One optional human question
-        if interactive and sys.stdin.isatty():
-            self._ask_one_question(ctx)
-
         return ctx
+
 
     # ──────────────────────────────────────────────────────────
     # Scanner 1 — Identity
@@ -428,6 +426,10 @@ class AutoGenerator:
             trust["never_touch"] = list(set(never_touch))
 
         # Default agent roles
+        implementor_cannot = ["change_architecture"]
+        if mutex_files:
+            implementor_cannot.append("touch_mutex_files")
+
         trust["agents"] = {
             "architect": {
                 "can": ["read_all", "propose_changes"],
@@ -435,13 +437,14 @@ class AutoGenerator:
             },
             "implementor": {
                 "can": ["write_code", "run_tests"],
-                "cannot": ["change_architecture", "touch_mutex_files"],
+                "cannot": implementor_cannot,
             },
             "reviewer": {
                 "can": ["read_all", "flag_violations"],
                 "cannot": ["write"],
             },
         }
+
 
         ctx.trust = trust
         self.confidence["trust"] = 0.8
@@ -552,20 +555,36 @@ class AutoGenerator:
     # ──────────────────────────────────────────────────────────
 
     def _build_cognitive_defaults(self, ctx) -> None:
+        # Dynamic critical sections
+        critical = ["api_surface", "trust_tiers"]
+        if ctx.hard_rules:
+            critical.append("hard_rules")
+        if ctx.verification:
+            critical.append("verification")
+        
+        # Check truth sources for invariants
+        if ctx.truth_sources.get("invariants") or ctx.truth_sources.get("test_invariants"):
+            critical.append("invariants")
+
+        # Dynamic important sections
+        important = ["conventions"]
+        if ctx.truth_sources.get("timeline") or getattr(ctx, "timeline", None):
+            important.extend(["architecture", "decisions"])
+
         ctx.cognitive = {
             "modes": {
                 "debug": {
-                    "prioritize": ["logs", "invariants", "hard_rules"],
+                    "prioritize": [c for c in ["logs", "invariants", "hard_rules"] if c in critical or c == "logs"],
                 },
                 "build": {
-                    "prioritize": ["api_surface", "dependencies", "trust_tiers"],
+                    "prioritize": [c for c in ["api_surface", "dependencies", "trust_tiers"] if c in critical or c in ["dependencies"]],
                 },
                 "refactor": {
-                    "prioritize": ["invariants", "architecture", "decisions"],
+                    "prioritize": [c for c in ["invariants", "architecture", "decisions"] if c in critical or c in important],
                 },
             },
-            "critical":  ["api_surface", "invariants", "trust_tiers", "hard_rules"],
-            "important": ["architecture", "decisions", "conventions"],
+            "critical":  critical,
+            "important": important,
             "reference": ["full_history", "benchmarks", "detailed_api"],
             "token_budget": {
                 "claude":  12000,
@@ -575,16 +594,53 @@ class AutoGenerator:
             },
         }
 
+
+    def _build_verification(self, ctx) -> None:
+        """Auto-detect test, lint, and build commands."""
+        v: dict[str, Any] = {"auto_verify": False}
+
+        # ── Test Commands ─────────────────────────────────────
+        if (self.root / "pytest.ini").exists() or (self.root / "tests").exists():
+            v["test_command"] = "pytest"
+        elif (self.root / "package.json").exists():
+            pkg = self._read_json("package.json") or {}
+            if "test" in pkg.get("scripts", {}):
+                v["test_command"] = "npm test"
+
+        # ── Lint Commands ─────────────────────────────────────
+        if (self.root / "pyproject.toml").exists():
+            content = self._read_file("pyproject.toml") or ""
+            if "ruff" in content:
+                v["lint_command"] = "ruff check ."
+            elif "flake8" in content:
+                v["lint_command"] = "flake8"
+        
+        if (self.root / "package.json").exists():
+            pkg = self._read_json("package.json") or {}
+            if "lint" in pkg.get("scripts", {}):
+                v["lint_command"] = "npm run lint"
+
+        # ── Build Commands ────────────────────────────────────
+        if (self.root / "tsconfig.json").exists():
+            v["build_command"] = "tsc"
+        elif (self.root / "package.json").exists():
+            pkg = self._read_json("package.json") or {}
+            if "build" in pkg.get("scripts", {}):
+                v["build_command"] = "npm run build"
+
+        if len(v) > 1: # more than just auto_verify
+            ctx.verification = v
+
     def _build_inference_config(self, ctx) -> None:
         ctx.inference = {
             "enabled": True,
             "mode": "propose_only",
             "require_validation": True,
             "sources": ["codebase", "git", "tests", "dependencies"],
-            "auto_learn": True,
             "confidence_threshold": 0.8,
             "human_review_queue": ".brain-ctx.proposals.yaml",
         }
+
 
     def _build_observability_defaults(self, ctx) -> None:
         ctx.observability = {
@@ -595,33 +651,6 @@ class AutoGenerator:
             "capture":    ["writes", "proposals", "rejections", "violations"],
         }
 
-    # ──────────────────────────────────────────────────────────
-    # The one optional question
-    # ──────────────────────────────────────────────────────────
-
-    def _ask_one_question(self, ctx) -> None:
-        """
-        Ask exactly one optional question.
-        This is the ONLY human interaction in the entire flow.
-        Press Enter = skip = fully automatic.
-        """
-        try:
-            from rich.console import Console
-            from rich.prompt import Prompt
-            console = Console()
-            console.print("\n[bold cyan]brain.ctx generated.[/bold cyan]")
-            console.print(
-                "\n[dim]One optional question:[/dim]\n"
-                "[bold]Is there anything your AI must NEVER do in this project[/bold]\n"
-                "[dim]that isn't already in the code? (Press Enter to skip)[/dim]\n"
-            )
-            answer = Prompt.ask("", default="").strip()
-            if answer:
-                ctx.hard_rules.insert(0, answer)
-                console.print(f"[green]✓ Added rule:[/green] {answer}")
-        except Exception:
-            # Non-interactive or rich not available
-            pass
 
     # ──────────────────────────────────────────────────────────
     # File reading helpers

@@ -39,6 +39,8 @@ class BrainCtx:
     mesh:          dict[str, Any]   = field(default_factory=dict)
     observability: dict[str, Any]   = field(default_factory=dict)
     signature:     dict[str, Any]   = field(default_factory=dict)
+    verification:  dict[str, Any]   = field(default_factory=dict)
+
 
     # Internal tracking
     _source_path:  Optional[Path]   = field(default=None, repr=False)
@@ -182,6 +184,7 @@ class BrainCtx:
         invariants = len(self.hard_rules)
         agents     = len(self.trust.get("agents", {}))
         signed     = "✓" if self.signature.get("value") else "✗"
+        verified   = "✓" if self.verification.get("auto_verify") else "!" if self.verification else "✗"
 
         parts = [
             f"✓ brain.ctx loaded — {name} v{self.version}",
@@ -191,7 +194,9 @@ class BrainCtx:
         if agents:
             parts.append(f"{agents} agents registered")
         parts.append(f"Signed: {signed}")
+        parts.append(f"Verified: {verified}")
         return " | ".join(parts)
+
 
     def save(
         self,
@@ -259,8 +264,9 @@ class BrainCtx:
         for field_name in [
             "identity", "inference", "trust", "hard_rules",
             "ethics", "truth_sources", "cognitive", "dialects",
-            "mesh", "observability", "signature",
+            "mesh", "observability", "signature", "verification",
         ]:
+
             val = getattr(self, field_name)
             if val:
                 out[field_name] = val

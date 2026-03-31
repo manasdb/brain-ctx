@@ -48,13 +48,27 @@ def init(
         border_style="cyan",
     ))
 
-    with console.status("[bold green]Scanning codebase...") as status:
-        status.update("[bold green]Reading package files...")
+    with console.status("[bold green]Scanning project structure...") as status:
         gen = AutoGenerator(project)
         ctx = gen.run(interactive=not silent)
 
+    # One optional human question (After scan status finishes)
+    if not silent and sys.stdin.isatty():
+        from rich.prompt import Prompt
+        console.print("\n[bold cyan]brain.ctx intelligence gathered.[/bold cyan]")
+        console.print(
+            "\n[dim]One optional question:[/dim]\n"
+            "[bold]Is there anything your AI must NEVER do in this project[/bold]\n"
+            "[dim]that isn't already in the code? (Press Enter to skip)[/dim]\n"
+        )
+        answer = Prompt.ask("", default="").strip()
+        if answer:
+            ctx.hard_rules.insert(0, answer)
+            console.print(f"[green]✓ Added rule:[/green] {answer}")
+
     output_path = project / output
     ctx.save(output_path, include_comments=not no_comments)
+
 
     # Show result
     console.print()
@@ -68,6 +82,11 @@ def init(
         border_style="green",
         title="brain.ctx",
     ))
+
+    # Opt-in Tip
+    if not ctx.hard_rules:
+        console.print("\n[dim]💡 Pro Tip: To re-introduce hard rules or architecture context, manually add a [/dim][bold]hard_rules:[/bold][dim] or [/dim][bold]timeline:[/bold][dim] section.[/dim]")
+
 
 
 @app.command()
